@@ -1,0 +1,49 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="numpy" />
+          <option value="pandas" />
+          <option value="torch" />
+          <option value="einops" />
+          <option value="huggingface_hub" />
+          <option value="matplotlib" />
+          <option value="tqdm" />
+          <option value="safetensors" />
+          <option value="opencv-python" />
+          <option value="opencv-python-headless" />
+          <option value="ultralytics" />
+          <option value="bettercam" />
+          <option value="pynput" />
+          <option value="torchvision" />
+          <option value="torchaudio" />
+          <option value="keyboard" />
+          <option value="onnxruntime" />
+          <option value="onnxruntime-gpu" />
+          <option value="Pillow" />
+          <option value="PyYAML" />
+          <option value="scipy" />
+          <option value="tensorboard" />
+          <option value="seaborn" />
+          <option value="mss" />
+          <option value="pygame" />
+          <option value="pywin32" />
+          <option value="requests" />
+          <option value="wheel" />
+          <option value="termcolor" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8NamingInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="N806" />
+          <option value="N803" />
+          <option value="N813" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
