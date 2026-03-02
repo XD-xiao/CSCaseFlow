@@ -1,7 +1,7 @@
 import time
 
 from InterfaceControl.ControlMain import ControlMain
-from AutoKill.AutoMain import AutoKill
+from AutoKill.Training import Training
 
 if __name__ == "__main__":
 
@@ -12,8 +12,11 @@ if __name__ == "__main__":
 
     print(f"===============  当前地图：{mapName}  ===============")
 
-    # autoKill = AutoKill()
-    # autoKill.start(mapName)
+    i = input("输入'1'确认开始:")
+
+    if i == "1":
+        training = Training()
+        training.start(mapName)
 
 
 

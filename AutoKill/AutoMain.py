@@ -40,11 +40,17 @@ class AutoKill:
     def logLoop(self):
         print("日志线程已启动...")
         while not self.stop_event.is_set():
-            time.sleep(1)
-            
+            time.sleep(2)
+
+            self.player.pos["x"] = self.player.pos["x"]/32
+            self.player.pos["y"] = self.player.pos["y"]/32
+            self.player.pos["z"] = self.player.pos["z"]/32
+
             with self.player_lock:
                 player_info = f"本地玩家: 血量={self.player.health}, 队伍={self.player.team}, 坐标={self.player.pos}"
-            
+
+
+
             print("-" * 50)
             print(player_info)
             
@@ -55,7 +61,7 @@ class AutoKill:
             for i, ent in enumerate(current_entities):
                 # 计算距离
                 _, distance = Utility.aimEnemy(self.player.pos, ent.pos)
-                print(f"  [{i+1}] 名字: {ent.name:<15} 血量: {ent.health:<3} 队伍: {ent.team} 距离: {distance:.2f} 坐标: {ent.pos}")
+                # print(f"  [{i+1}] 名字: {ent.name:<15} 血量: {ent.health:<3} 队伍: {ent.team} 距离: {distance:.2f} 坐标: {ent.pos}")
             
             print("-" * 50)
 
@@ -112,7 +118,7 @@ class AutoKill:
             print("-" * 50)
 
 
-    def start(self):
+    def start(self , mapName: str) -> None:
         print("正在初始化...")
         if not self.mem.initialize():
             print("初始化内存管理器失败。")
@@ -121,13 +127,18 @@ class AutoKill:
         print("作弊已启动。按 'END' 键退出。")
         self.is_running = True
 
-        mapManager = MapManager("Dust2")
+        mapManager = MapManager(mapName)
 
         threading.Thread(
             target=self.kill,
             args=(mapManager,),
             daemon=True
         ).start()
+
+        # threading.Thread(
+        #     target=self.logLoop,
+        #     daemon=True,
+        # ).start()
 
         print("主循环已启动...")
         while self.is_running:
@@ -149,11 +160,9 @@ class AutoKill:
             
             time.sleep(0.01)
 
-        # 保存地图数据
-        mapManager.save_data()
 
 
 
 if __name__ == "__main__":
     app = AutoKill()
-    app.start()
+    app.start("")

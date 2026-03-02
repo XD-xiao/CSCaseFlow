@@ -8,7 +8,7 @@ from typing import Dict, Tuple, Set, List
 class MapManager:
     def __init__(self, mapName: str):
         self.mapName = mapName
-        self.grid_size = 64
+        self.grid_size = 32
         self.data: Set[Tuple[int, int, int]] = set()
         
         # 设置路径

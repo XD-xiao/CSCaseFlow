@@ -132,7 +132,7 @@ class Training:
 
 
 
-    def start(self):
+    def start(self , mapName: str) -> None:
         print("正在初始化...")
         if not self.mem.initialize():
             print("初始化内存管理器失败。")
@@ -141,7 +141,7 @@ class Training:
         print("作弊已启动。按 'END' 键退出。")
         self.is_running = True
 
-        mapManager = MapManager("Dust2")
+        mapManager = MapManager(mapName)
 
         # 启动日志读取线程
         threading.Thread(
@@ -183,4 +183,4 @@ class Training:
 
 if __name__ == "__main__":
     app = Training()
-    app.start()
+    app.start("")
