@@ -27,3 +27,10 @@ class ControlMain:
             self.currentMapName = None
         return self.currentMapName
 
+
+    def chooseTeam(self):
+        cs2Info = ICUtility.getWindowPosition(CS2Title)
+        ICUtility.click_at(
+            cs2Info.get("x") + 700,
+            cs2Info.get("y") + 400
+        )

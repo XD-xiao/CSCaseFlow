@@ -56,7 +56,6 @@ class PawnReader:
             return False
     def update_IsShout(self, player: Player) -> bool:
         player.isShout = self.get_fire_logic_data()
-        time.sleep(0.001)
         if player.isShout is not None:
             return True
         return False
@@ -87,8 +86,8 @@ class PawnReader:
             # Use cached entity list pointer
             list_offset = 0x8 * (index >> 9)
             ent_entry = self.mm.read_longlong(self.mm.ent_list + list_offset + 0x10)
-            entity_offset = 120 * (index & 0x1FF)
-            return self.mm.read_longlong(ent_entry + entity_offset)
+            entity_offset = ENTITY_ENTRY_SIZE * (index & 0x1FF)
+            return self.mm.read_longlong(ent_entry + entity_offset)     #实体的pawnPtr
         except Exception as e:
             print(f"Error reading entity: {e}")
             return None
@@ -168,7 +167,7 @@ class PawnReader:
             # 使用 game_scene 计算骨骼位置
             # 用户逻辑：生命值 >= 95 且为奇数 -> 骨骼 6，否则骨骼 4
             # 此逻辑似乎是任意的（可能是为了交替瞄准点？），但我会遵循它。
-            bone_id = 6 if (entity.health >= 95 and entity.health % 2 != 0) else 4
+            bone_id = 6 if (entity.health >= 90 ) else 4
             entity.pos = self.bone_pos(bone_id, game_scene ,entity.pawnPtr)
                 
             # 验证骨骼位置
@@ -204,6 +203,7 @@ class PawnReader:
         except Exception as e:
             # print(f"Failed to update entity data: {e}")
             return False
+
 
     def get_all_entities(self, player: Player,mapManager:MapManager) -> List[Entity]:
         """
@@ -275,9 +275,6 @@ class PawnReader:
         return entities
 
     def bone_pos(self, bone: int, game_scene: int = 0, pawn_ptr: int = 0) -> Dict[str, float]:
-        """获取特定骨骼的3D位置，如果可用则使用缓存数据。"""
-
-        # 如果未在缓存中，则回退到直接读取
         try:
             if game_scene == 0:
                 if pawn_ptr == 0:
@@ -287,13 +284,15 @@ class PawnReader:
             if not game_scene:
                 return {"x": 0.0, "y": 0.0, "z": 0.0}
 
-            bone_array_ptr = self.mm.read_longlong(game_scene + self.mm.m_pBoneArray)
+            # 强制使用该项目验证过的偏移量逻辑
+            # m_modelState = 0x160, + 0x80 = 0x1E0
+            bone_array_ptr = self.mm.read_longlong(game_scene + 0x1E0)
+
             if not bone_array_ptr:
                 return {"x": 0.0, "y": 0.0, "z": 0.0}
 
             return self.mm.read_vec3(bone_array_ptr + bone * 32)
         except Exception as e:
-            # logger.error(f"Failed to get bone position for bone {bone}: {e}")
             return {"x": 0.0, "y": 0.0, "z": 0.0}
 
     def _get_entity_address(self, index: int) -> int:

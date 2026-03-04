@@ -8,12 +8,24 @@ if __name__ == "__main__":
     time.sleep(3)
 
     cm = ControlMain()
-    mapName = cm.mapRecognition()
 
-    print(f"===============  当前地图：{mapName}  ===============")
+    while True:
+        mapName = cm.mapRecognition()
+        autoKill = AutoKill()
 
-    # autoKill = AutoKill()
-    # autoKill.start(mapName)
+        print(f"===============  当前地图：{mapName}  ===============")
+        print(f"===============  当前地图：{mapName}  ===============")
+        print(f"===============  当前地图：{mapName}  ===============")
+        print(f"===============  当前地图：{mapName}  ===============")
+
+        time.sleep(5)
+
+
+        autoKill.start(mapName)
+
+        time.sleep(12)
+        # cm.chooseTeam()
+        time.sleep(3)
 
 
 

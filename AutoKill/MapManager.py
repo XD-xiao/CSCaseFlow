@@ -3,6 +3,7 @@ import os
 import math
 import winsound
 import time
+import threading
 from typing import Dict, Tuple, Set, List
 
 class MapManager:
@@ -30,6 +31,15 @@ class MapManager:
         # 自动保存计时
         self.last_save_time = time.time()
         self.save_interval = 10  # 秒
+
+    def _play_beep(self):
+        """异步播放提示音，避免阻塞主线程"""
+        def beep():
+            try:
+                winsound.Beep(800, 500)
+            except:
+                pass
+        threading.Thread(target=beep, daemon=True).start()
 
     def _load_data(self):
         """从JSON文件加载数据，如果不存在则创建空数据"""
@@ -78,11 +88,8 @@ class MapManager:
         if grid_pos not in self.data:
             self.data.add(grid_pos)
             
-            # 播放提示音
-            try:
-                winsound.Beep(800, 500)
-            except:
-                pass
+            # 播放提示音 (异步)
+            self._play_beep()
             
             # 自动保存检查
             if time.time() - self.last_save_time > self.save_interval:
@@ -112,11 +119,8 @@ class MapManager:
                 has_new = True
                 
         if has_new:
-            # 播放提示音
-            try:
-                winsound.Beep(800, 500)
-            except:
-                pass
+            # 播放提示音 (异步)
+            self._play_beep()
             
             # 自动保存检查
             if time.time() - self.last_save_time > self.save_interval:
