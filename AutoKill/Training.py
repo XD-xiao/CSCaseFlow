@@ -14,8 +14,8 @@ from AutoKill.Uitlity import Utility
 
 
 mouse = Controller()
-input_file = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
-# input_file = r"D:\steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
+# input_file = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
+input_file = r"D:\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
 output_file = "attacks.txt"
 
 pattern = re.compile(
@@ -244,10 +244,10 @@ class Training:
                 os._exit(0)
 
             # 每隔1秒按一下W键 (防掉线/保持活跃)
-            if time.time() - last_w_press_time > 0.5:
+            if time.time() - last_w_press_time > 1:
                 vk_w = Utility.get_vk_code("w")
                 ctypes.windll.user32.keybd_event(vk_w, 0, 0, 0)  # 按下
-                time.sleep(0.5)
+                time.sleep(0.2)
                 ctypes.windll.user32.keybd_event(vk_w, 0, 2, 0)  # 抬起
                 last_w_press_time = time.time()
 
@@ -258,6 +258,11 @@ class Training:
             # 获取新实体列表
             new_entities = self.reader.get_all_entities(self.player, mapManager)
 
+            # 如果new_entities为空，则推出循环
+            if not new_entities:
+                print("实体数组为空,退出射击")
+                break
+
             # 更新实体列表（加锁）
             with self.entity_lock:
                 self.entities = new_entities
@@ -266,6 +271,8 @@ class Training:
         
         # 保存地图数据
         mapManager.save_data()
+
+        return None
 
 
 if __name__ == "__main__":
