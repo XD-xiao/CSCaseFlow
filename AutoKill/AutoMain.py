@@ -189,11 +189,11 @@ class AutoKill:
         mapManager = MapManager(mapName)
 
         # 启动智能击杀线程
-        threading.Thread(
-            target=self.smart_kill,
-            args=(mapManager,),
-            daemon=True
-        ).start()
+        # threading.Thread(
+        #     target=self.smart_kill,
+        #     args=(mapManager,),
+        #     daemon=True
+        # ).start()
 
         # threading.Thread(
         #     target=self.kill,
@@ -201,11 +201,11 @@ class AutoKill:
         #     daemon=True
         # ).start()
 
-        # threading.Thread(
-        #     target=self.logLoop,
-        #     args=(mapManager,),
-        #     daemon=True,
-        # ).start()
+        threading.Thread(
+            target=self.logLoop,
+            args=(mapManager,),
+            daemon=True,
+        ).start()
 
         print("主循环已启动...")
         last_w_press_time = time.time()

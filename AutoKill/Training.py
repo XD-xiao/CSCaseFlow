@@ -14,8 +14,8 @@ from AutoKill.Uitlity import Utility
 
 
 mouse = Controller()
-# input_file = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
-input_file = r"D:\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
+input_file = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
+# input_file = r"D:\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
 output_file = "attacks.txt"
 
 pattern = re.compile(
@@ -223,11 +223,11 @@ class Training:
         ).start()
 
         # 启动智能击杀线程
-        threading.Thread(
-            target=self.smart_kill,
-            args=(mapManager,),
-            daemon=True
-        ).start()
+        # threading.Thread(
+        #     target=self.smart_kill,
+        #     args=(mapManager,),
+        #     daemon=True
+        # ).start()
 
         print("主循环已启动...")
         last_w_press_time = time.time()
@@ -244,12 +244,12 @@ class Training:
                 os._exit(0)
 
             # 每隔1秒按一下W键 (防掉线/保持活跃)
-            if time.time() - last_w_press_time > 1:
-                vk_w = Utility.get_vk_code("w")
-                ctypes.windll.user32.keybd_event(vk_w, 0, 0, 0)  # 按下
-                time.sleep(0.2)
-                ctypes.windll.user32.keybd_event(vk_w, 0, 2, 0)  # 抬起
-                last_w_press_time = time.time()
+            # if time.time() - last_w_press_time > 1:
+            #     vk_w = Utility.get_vk_code("w")
+            #     ctypes.windll.user32.keybd_event(vk_w, 0, 0, 0)  # 按下
+            #     time.sleep(0.2)
+            #     ctypes.windll.user32.keybd_event(vk_w, 0, 2, 0)  # 抬起
+            #     last_w_press_time = time.time()
 
             if not self.reader.update_player(self.player):
                 time.sleep(0.5)
