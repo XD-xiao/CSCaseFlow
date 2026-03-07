@@ -29,8 +29,20 @@ class ControlMain:
 
 
     def chooseTeam(self):
-        cs2Info = ICUtility.getWindowPosition(CS2Title)
-        ICUtility.click_at(
-            cs2Info.get("x") + 700,
-            cs2Info.get("y") + 400
-        )
+        try:
+            cs2Info = ICUtility.getWindowPosition(CS2Title)
+            if not cs2Info:
+                print(f"未找到窗口: {CS2Title}")
+                return
+
+            target_x = cs2Info.get("x") + 700
+            target_y = cs2Info.get("y") + 400
+            
+            # 增加对坐标的简单校验，防止无效坐标
+            if target_x < 0 or target_y < 0:
+                print(f"点击坐标异常: ({target_x}, {target_y})")
+                return
+
+            ICUtility.click_at(target_x, target_y)
+        except Exception as e:
+            print(f"选择队伍失败: {e}")

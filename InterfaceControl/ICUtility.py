@@ -92,7 +92,15 @@ def click_at(x, y):
     """
     点击指定坐标
     """
-    pyautogui.click(x, y)
+    # 暂时禁用 fail-safe，防止鼠标移动到角落触发异常
+    pyautogui.FAILSAFE = False
+    try:
+        pyautogui.click(x, y)
+    except Exception as e:
+        print(f"点击失败: {e}")
+    finally:
+        # 恢复 fail-safe（可选，根据需求决定是否恢复）
+        pyautogui.FAILSAFE = True
 
 
 def is_process_running(name: str) -> bool:

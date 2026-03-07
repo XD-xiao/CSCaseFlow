@@ -20,11 +20,15 @@ if __name__ == "__main__":
 
         time.sleep(5)
 
+        cm.chooseTeam()
+
+        time.sleep(4)
+
 
         autoKill.start(mapName)
 
         time.sleep(12)
-        # cm.chooseTeam()
+        cm.chooseTeam()
         time.sleep(3)
 
 

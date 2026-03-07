@@ -2,6 +2,7 @@ import threading
 import time
 import ctypes
 import os
+import random
 from pynput.mouse import Controller, Button
 
 from AutoKill.MapManager import MapManager
@@ -36,22 +37,22 @@ class AutoKill:
         self.data_ready = threading.Event()
         self.entity_lock = threading.Lock()
         self.player_lock = threading.Lock()
+        
+        # 战斗状态标志，用于互斥行走
+        self.is_combat = False
 
 
     def logLoop(self, mapManager: MapManager):
         print("日志线程已启动...")
         while not self.stop_event.is_set():
-            time.sleep(2)
+            time.sleep(0.5)
 
             with self.player_lock:
                 player_info = f"本地玩家: 血量={self.player.health}, 队伍={self.player.team}, 坐标={self.player.pos}"
 
-
-
             print("-" * 50)
-            print(player_info)
+            # print(player_info)
 
-            mapManager.add_walkable(self.player.pos)
 
             
             with self.entity_lock:
@@ -60,52 +61,73 @@ class AutoKill:
             print(f"发现实体数量: {len(current_entities)}")
 
             for i, ent in enumerate(current_entities):
-                mapManager.add_walkable(ent.pos)
-                print(f"[{i}] name:{ent.name} , pos: {ent.pos}")
-            
+                print(f"{i}: {ent}")
+
             print("-" * 50)
 
-    def kill(self, mapManager: MapManager):
-        print("日志线程已启动...")
+    def walk(self):
+        print("行走 thread started...")
+        
         while not self.stop_event.is_set():
-            # time.sleep(0.1)
+            # 1. 随机时间（5秒内）
+            sleep_time = random.uniform(0.1, 2.0)
+            time.sleep(sleep_time)
+            
+            if self.stop_event.is_set():
+                break
 
-            with self.player_lock:
-                player_info = f"本地玩家: 血量={self.player.health}, 队伍={self.player.team}, 坐标={self.player.pos}"
+            # 如果处于战斗状态，暂停行走逻辑
+            if self.is_combat:
+                time.sleep(0.1)
+                continue
 
-            print("-" * 50)
-            print(player_info)
-
-            with self.entity_lock:
-                current_entities = list(self.entities)
-
-            print(f"发现实体数量: {len(current_entities)}")
-            for i, ent in enumerate(current_entities):
-                count = 0
-                while (ent.isCanShot and ent.health > 0 ) or self.reader.update_IsShout(self.player):
-                    self.reader.setAngle(self.player, ent.canShoutAngle)
-                    if self.reader.update_IsShout(self.player):
-                        mouse.click(Button.left)
-                        time.sleep(0.01)
-                        count = 0
-                    elif count <= 20:
-                        # 如果打不到，刷新位置再试
-                        time.sleep(0.001)
-                        count = count + 1
-                        print(f"尝试瞄准次数{count}")
-                        continue
-                    else:
+            # 2. 随机转动视角或走路，概率默认50%
+            if random.random() < 0.5:
+                # 随机转动视角
+                # 随机转动角度，-60~60之间
+                yaw_delta = random.uniform(-100, 100)
+                # 稍微给一点点 pitch 变化更真实，或者 0
+                pitch_delta = random.uniform(-2, 2)
+                
+                # 再次检查战斗状态
+                if self.is_combat:
+                    continue
+                    
+                # 使用 Utility.move 相对移动
+                # print(f"随机视角: yaw={yaw_delta:.1f}")
+                Utility.move(yaw_delta, pitch_delta, sens=1.0)
+            else:
+                # 随机行走方向（WASD）
+                # w: 60%, s: 8%, a: 16%, d: 16%
+                keys = ['w', 's', 'a', 'd']
+                weights = [0.60, 0.08, 0.16, 0.16]
+                key = random.choices(keys, weights=weights, k=1)[0]
+                duration = random.uniform(0.1, 0.6)
+                
+                vk_code = Utility.get_vk_code(key)
+                # print(f"随机移动: {key} for {duration:.2f}s")
+                
+                if self.is_combat:
+                    continue
+                    
+                ctypes.windll.user32.keybd_event(vk_code, 0, 0, 0) # Press
+                
+                # 分段等待，以便在战斗开始时及时停止
+                start_time = time.time()
+                interrupted = False
+                while time.time() - start_time < duration:
+                    if self.is_combat:
+                        interrupted = True
                         break
-                    self.reader.update_entity_data(ent, self.player, mapManager)
-                    self.reader.setAngle(self.player, ent.canShoutAngle)
+                    time.sleep(0.05)
+                
+                ctypes.windll.user32.keybd_event(vk_code, 0, 2, 0) # Release
+                
+                if interrupted:
+                    # 如果被打断，稍微休息一下
+                    time.sleep(0.2)
 
-                    time.sleep(0.001)  # 射击间隔
-
-                mapManager.add_walkable(ent.pos)
-
-
-
-            print("-" * 50)
+        return None
 
 
     def smart_kill(self, mapManager: MapManager):
@@ -148,6 +170,7 @@ class AutoKill:
 
             # 攻击逻辑
             if target:
+                self.is_combat = True
                 # 持续更新该目标的数据和角度（因为玩家和敌人都在动）
                 # 这一步很重要，确保瞄准的是最新位置
                 self.reader.update_entity_data(target, self.player, mapManager)
@@ -174,6 +197,7 @@ class AutoKill:
                     # 不开火，防止浪费子弹或暴露
                     pass
             else:
+                self.is_combat = False
                 # 如果没有可射击目标，稍微多睡一会
                 time.sleep(0.02)
 
@@ -186,24 +210,26 @@ class AutoKill:
         print("作弊已启动。按 'END' 键退出。")
         self.is_running = True
 
+
         mapManager = MapManager(mapName)
 
-        # 启动智能击杀线程
-        # threading.Thread(
-        #     target=self.smart_kill,
-        #     args=(mapManager,),
-        #     daemon=True
-        # ).start()
 
         # threading.Thread(
-        #     target=self.kill,
+        #     target=self.logLoop,
         #     args=(mapManager,),
-        #     daemon=True
+        #     daemon=True,
         # ).start()
+
+
+        # 启动智能击杀线程
+        threading.Thread(
+            target=self.smart_kill,
+            args=(mapManager,),
+            daemon=True
+        ).start()
 
         threading.Thread(
-            target=self.logLoop,
-            args=(mapManager,),
+            target=self.walk,
             daemon=True,
         ).start()
 
@@ -217,17 +243,17 @@ class AutoKill:
                 self.stop_event.set()
                 try:
                     mapManager.save_data()
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"保存数据失败: {e}")
                 os._exit(0)
             
             # 每隔1秒按一下W键 (防掉线/保持活跃)
-            if time.time() - last_w_press_time > 0.5:
-                vk_w = Utility.get_vk_code("w")
-                ctypes.windll.user32.keybd_event(vk_w, 0, 0, 0)  # 按下
-                time.sleep(0.25)
-                ctypes.windll.user32.keybd_event(vk_w, 0, 2, 0)  # 抬起
-                last_w_press_time = time.time()
+            # if time.time() - last_w_press_time > 0.5:
+            #     vk_w = Utility.get_vk_code("w")
+            #     ctypes.windll.user32.keybd_event(vk_w, 0, 0, 0)  # 按下
+            #     time.sleep(0.25)
+            #     ctypes.windll.user32.keybd_event(vk_w, 0, 2, 0)  # 抬起
+            #     last_w_press_time = time.time()
 
             if not self.reader.update_player(self.player):
                 time.sleep(0.5)
