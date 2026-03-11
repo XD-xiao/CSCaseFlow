@@ -1,5 +1,5 @@
 // Generated using https://github.com/a2x/cs2-dumper
-// 2026-03-05 01:49:43.153472200 UTC
+// 2026-03-11 00:23:04.762153600 UTC
 
 #![allow(non_upper_case_globals, unused)]
 
@@ -12,14 +12,14 @@ pub mod cs2_dumper {
         }
         // Module: client.dll
         pub mod client_dll {
-            pub const ClientToolsInfo_001: usize = 0x205F120;
-            pub const EmptyWorldService001_Client: usize = 0x2018F90;
-            pub const GameClientExports001: usize = 0x205BE00;
-            pub const LegacyGameUI001: usize = 0x2079660;
-            pub const Source2Client002: usize = 0x2305E60;
-            pub const Source2ClientConfig001: usize = 0x2289F30;
-            pub const Source2ClientPrediction001: usize = 0x2066A70;
-            pub const Source2ClientUI001: usize = 0x2077EF0;
+            pub const ClientToolsInfo_001: usize = 0x2060120;
+            pub const EmptyWorldService001_Client: usize = 0x2019F90;
+            pub const GameClientExports001: usize = 0x205CE00;
+            pub const LegacyGameUI001: usize = 0x207A660;
+            pub const Source2Client002: usize = 0x2306DE0;
+            pub const Source2ClientConfig001: usize = 0x228AEC0;
+            pub const Source2ClientPrediction001: usize = 0x2067A70;
+            pub const Source2ClientUI001: usize = 0x2078EF0;
         }
         // Module: engine2.dll
         pub mod engine2_dll {
@@ -160,8 +160,8 @@ pub mod cs2_dumper {
         }
         // Module: server.dll
         pub mod server_dll {
-            pub const EmptyWorldService001_Server: usize = 0x1B75BE0;
-            pub const EntitySubclassUtilsV001: usize = 0x1B21140;
+            pub const EmptyWorldService001_Server: usize = 0x1B75BD0;
+            pub const EntitySubclassUtilsV001: usize = 0x1B21130;
             pub const NavGameTest001: usize = 0x1C1F7F8;
             pub const ServerToolsInfo_001: usize = 0x1BD0A78;
             pub const Source2GameClients001: usize = 0x1BCDAF0;
@@ -169,7 +169,7 @@ pub mod cs2_dumper {
             pub const Source2GameEntities001: usize = 0x1BD0180;
             pub const Source2Server001: usize = 0x1BCFFE0;
             pub const Source2ServerConfig001: usize = 0x1E54B98;
-            pub const customnavsystem001: usize = 0x1AFFEF8;
+            pub const customnavsystem001: usize = 0x1AFFEE8;
         }
         // Module: soundsystem.dll
         pub mod soundsystem_dll {
@@ -184,27 +184,27 @@ pub mod cs2_dumper {
         }
         // Module: steamclient64.dll
         pub mod steamclient64_dll {
-            pub const IVALIDATE001: usize = 0x1665ED8;
-            pub const SteamClient006: usize = 0x16633E0;
-            pub const SteamClient007: usize = 0x16633E8;
-            pub const SteamClient008: usize = 0x16633F0;
-            pub const SteamClient009: usize = 0x16633F8;
-            pub const SteamClient010: usize = 0x1663400;
-            pub const SteamClient011: usize = 0x1663408;
-            pub const SteamClient012: usize = 0x1663410;
-            pub const SteamClient013: usize = 0x1663418;
-            pub const SteamClient014: usize = 0x1663420;
-            pub const SteamClient015: usize = 0x1663428;
-            pub const SteamClient016: usize = 0x1663430;
-            pub const SteamClient017: usize = 0x1663438;
-            pub const SteamClient018: usize = 0x1663440;
-            pub const SteamClient019: usize = 0x1663448;
-            pub const SteamClient020: usize = 0x1663450;
-            pub const SteamClient021: usize = 0x1663458;
-            pub const SteamClient022: usize = 0x1663460;
-            pub const SteamClient023: usize = 0x1663468;
-            pub const p2pvoice002: usize = 0x14E4D9F;
-            pub const p2pvoicesingleton002: usize = 0x163F0F0;
+            pub const IVALIDATE001: usize = 0x166F0A8;
+            pub const SteamClient006: usize = 0x166C5B0;
+            pub const SteamClient007: usize = 0x166C5B8;
+            pub const SteamClient008: usize = 0x166C5C0;
+            pub const SteamClient009: usize = 0x166C5C8;
+            pub const SteamClient010: usize = 0x166C5D0;
+            pub const SteamClient011: usize = 0x166C5D8;
+            pub const SteamClient012: usize = 0x166C5E0;
+            pub const SteamClient013: usize = 0x166C5E8;
+            pub const SteamClient014: usize = 0x166C5F0;
+            pub const SteamClient015: usize = 0x166C5F8;
+            pub const SteamClient016: usize = 0x166C600;
+            pub const SteamClient017: usize = 0x166C608;
+            pub const SteamClient018: usize = 0x166C610;
+            pub const SteamClient019: usize = 0x166C618;
+            pub const SteamClient020: usize = 0x166C620;
+            pub const SteamClient021: usize = 0x166C628;
+            pub const SteamClient022: usize = 0x166C630;
+            pub const SteamClient023: usize = 0x166C638;
+            pub const p2pvoice002: usize = 0x14E4E6F;
+            pub const p2pvoicesingleton002: usize = 0x16480F0;
         }
         // Module: tier0.dll
         pub mod tier0_dll {
