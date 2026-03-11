@@ -95,7 +95,7 @@ class AutoKill:
                     
                 # 使用 Utility.move 相对移动
                 # print(f"随机视角: yaw={yaw_delta:.1f}")
-                Utility.move(yaw_delta, pitch_delta, sens=1.0)
+                Utility.move(yaw_delta, pitch_delta, sens=1.0, stop_event=self.stop_event)
             else:
                 # 随机行走方向（WASD）
                 # w: 60%, s: 8%, a: 16%, d: 16%
@@ -176,7 +176,7 @@ class AutoKill:
                 self.reader.update_entity_data(target, self.player, mapManager)
                 
                 # 瞄准
-                self.reader.setAngle(self.player, target.canShoutAngle)
+                self.reader.setAngle(self.player, target.canShoutAngle, stop_event=self.stop_event)
                 
                 # 判断准星是否在敌人身上 (内存读取，100%准确)
                 # 给予少量重试机会以等待视角同步或游戏判定更新
@@ -265,6 +265,8 @@ class AutoKill:
             # 如果new_entities为空，则推出循环
             if not new_entities:
                 print("实体数组为空,退出射击")
+                self.is_running = False
+                self.stop_event.set()
                 break
 
             # 更新实体列表（加锁）

@@ -1,5 +1,5 @@
 import os
-from typing import Dict
+from typing import Dict, Optional
 import math
 
 import requests
@@ -253,7 +253,14 @@ class Utility:
         SendInput(1, ctypes.byref(input_event), ctypes.sizeof(input_event))
 
     @staticmethod
-    def move(yaw: float, pitch: float, sens: float, step: int = 30, delay: float = 0.00001):
+    def move(
+        yaw: float,
+        pitch: float,
+        sens: float,
+        step: int = 30,
+        delay: float = 0.00001,
+        stop_event: Optional[object] = None,
+    ):
         """
         按角度移动视角（自动换算成鼠标输入，并分步发送）
         yaw: 水平角度 (+右, -左)
@@ -272,6 +279,8 @@ class Utility:
         stepy = dy / steps
 
         for _ in range(steps):
+            if stop_event is not None and stop_event.is_set():
+                break
             Utility.move_once(int(stepx), int(stepy))
             if delay > 0:
                 time.sleep(delay)

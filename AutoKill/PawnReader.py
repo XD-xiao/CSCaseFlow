@@ -1,6 +1,7 @@
 import time
 from typing import List, Optional, Dict
 import math
+import threading
 
 from AutoKill.MapManager import MapManager
 from AutoKill.MemoryManager import MemoryManager
@@ -93,14 +94,36 @@ class PawnReader:
             return None
 
 
-    def setAngle(self, player:Player, target_angle: Dict[str, float], sens: float = 1.0, threshold: float = 0.1):
+    def setAngle(
+        self,
+        player: Player,
+        target_angle: Dict[str, float],
+        sens: float = 1.0,
+        threshold: float = 0.1,
+        stop_event: Optional[threading.Event] = None,
+        max_duration: float = 0.6,
+        max_iterations: int = 500,
+    ):
         """
         循环移动视角直到接近目标角度
         target_angle: {"x": pitch(上下), "y": yaw(水平)}
         sens: 灵敏度
         threshold: 停止阈值（角度差小于此值就停止）
         """
+        start_time = time.time()
+        iterations = 0
+
         while True:
+            if stop_event is not None and stop_event.is_set():
+                break
+            if max_duration > 0 and (time.time() - start_time) >= max_duration:
+                break
+            if max_iterations > 0 and iterations >= max_iterations:
+                break
+            if not getattr(player, "pawnPtr", None):
+                break
+            iterations += 1
+
             # 当前角度
             angle = self.mm.read_vec2(
                 player.pawnPtr + self.mm.m_angEyeAngles
@@ -121,8 +144,8 @@ class PawnReader:
                 break
 
             # 转换为鼠标输入（可调比例，避免过冲）
-            mx = int(dy * -45.72 * 0.2)  # 水平
-            my = int(dx * 45.71 * 0.2)  # 垂直
+            mx = int(dy * -45.72 * 0.2 * sens)  # 水平
+            my = int(dx * 45.71 * 0.2 * sens)  # 垂直
 
             # 最小移动限制（避免被截断为0导致卡死）
             if mx == 0 and abs(dy) > threshold:
