@@ -50,7 +50,32 @@ class PawnReader:
             # 检查是否射击
             # 它检查准星 ID 是否大于 0
             player.isShout = self.get_fire_logic_data()
-            
+
+            player.Spotted = bool(self.mm.read_int(player_pawn_addr + self.mm.m_entitySpottedState + self.mm.m_bSpotted))
+
+            spotted_by_mask = self.mm.read_uint32s(
+                player_pawn_addr + self.mm.m_entitySpottedState + self.mm.m_bSpottedByMask,
+                2,
+            )
+            mask0, mask1 = spotted_by_mask
+
+            spotted_indices: list[int] = []
+            m = mask0
+            while m:
+                lsb = m & -m
+                spotted_indices.append(lsb.bit_length() - 1)
+                m ^= lsb
+
+            m = mask1
+            while m:
+                lsb = m & -m
+                spotted_indices.append(lsb.bit_length() - 1 + 32)
+                m ^= lsb
+
+            player.SpottedByMask = spotted_indices
+
+
+
             return True
         except Exception as e:
             # print(f"Error updating player: {e}")
@@ -172,11 +197,11 @@ class PawnReader:
                 entity.isCanShot = False
                 return False
 
-            # 从 GameSceneNode 读取休眠状态
-            entity.dormant = bool(self.mm.read_int(game_scene + self.mm.m_bDormant))
-            
-            # 如果休眠，跳过后续处理以节省资源
-            if entity.dormant:
+
+            entity.invincible = bool(self.mm.read_int(( entity.pawnPtr + self.mm.m_bHasMovedSinceSpawn)))
+
+            # 如果无敌，跳过后续处理以节省资源
+            if not entity.invincible:
                 entity.isCanShot = False
                 return True
 
@@ -188,9 +213,7 @@ class PawnReader:
             entity.team = self.mm.read_int(entity.pawnPtr + self.mm.m_iTeamNum)
             
             # 使用 game_scene 计算骨骼位置
-            # 用户逻辑：生命值 >= 95 且为奇数 -> 骨骼 6，否则骨骼 4
-            # 此逻辑似乎是任意的（可能是为了交替瞄准点？），但我会遵循它。
-            bone_id = 6 if (entity.health >= 90 ) else 4
+            bone_id = 6 if (entity.health >= 92 ) else 4
             entity.pos = self.bone_pos(bone_id, game_scene ,entity.pawnPtr)
                 
             # 验证骨骼位置
@@ -283,6 +306,7 @@ class PawnReader:
                     entity = Entity()
                     entity.pawnPtr = pawn_ptr
                     entity.localControllerPtr = controller_ptr
+                    entity.id = i-1  # 实体ID，用于唯一标识实体
 
                     # 更新实体数据
                     if self.update_entity_data(entity, player,mapManager):

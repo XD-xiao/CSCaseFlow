@@ -28,6 +28,8 @@ class Entity:
         self.localControllerPtr = None
         self.pawnPtr = None
 
+        self.id: int = 0  # 实体ID，用于唯一标识实体
+
         self.pos2d: Optional[Dict[str, float]] = None  # 实体在屏幕上的二维坐标（世界坐标投影到屏幕），用于绘图
         self.head_pos2d: Optional[Dict[str, float]] = None  # 实体头部在屏幕上的二维坐标，用于绘图（如血条、名字）
 
@@ -37,12 +39,13 @@ class Entity:
         self.team: int = -1  # 队伍编号（例如T/CT）
         self.pos: Dict[str, float] = {"x": 0.0, "y": 0.0, "z": 0.0}  # 实体的三维世界坐标位置
         self.angle: Dict[str, float] = {"x": 0.0, "y": 0.0}
-        self.dormant: bool = True  # 是否处于“休眠”状态（未激活/不可见/无效）
         self.isCanShot: bool = False
         self.canShoutAngle: Dict[str, float] = {"x": 0.0, "y": 0.0}
 
         self.spotted: int = 0
         self.weapon: str = ""
+
+        self.invincible : bool = False  #判断是否在无敌时间,True不在,False正在无敌,无法射击
 
 
         return

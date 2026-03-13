@@ -90,6 +90,33 @@ class Training:
         except Exception as e:
             print(f"读取日志文件时发生错误: {e}")
 
+
+
+    def logLoop(self, mapManager: MapManager):
+        print("日志线程已启动...")
+        while not self.stop_event.is_set():
+            time.sleep(0.5)
+
+            with self.player_lock:
+                player_info = (
+                    f"本地玩家: m_bSpotted:{self.player.Spotted}  "
+                    f"m_bSpottedByMask:{self.player.SpottedByMask}"
+                )
+
+            print("-" * 50)
+            print(player_info)
+
+            with self.entity_lock:
+                current_entities = list(self.entities)
+
+            # print(f"发现实体数量: {len(current_entities)}")
+
+            for i, ent in enumerate(current_entities):
+                print(f"{ent.id}: hp: {ent.health} ")
+
+            print("-" * 50)
+
+
     def oneTraining(self, mapManager: MapManager):
         print("数据录入线程已启动...")
         last_print_time = time.time()
@@ -172,12 +199,14 @@ class Training:
                 self.reader.update_entity_data(target, self.player, mapManager)
 
                 # 瞄准
-                self.reader.setAngle(self.player, target.canShoutAngle)
+                self.reader.setAngle(self.player, target.canShoutAngle, stop_event=self.stop_event)
 
                 # 判断准星是否在敌人身上 (内存读取，100%准确)
                 # 给予少量重试机会以等待视角同步或游戏判定更新
                 is_aiming_at_enemy = False
                 for _ in range(5):
+                    if self.stop_event.is_set():
+                        break
                     if self.reader.update_IsShout(self.player):
                         is_aiming_at_enemy = True
                         break
@@ -187,7 +216,7 @@ class Training:
                     mouse.click(Button.left)
                     # 关键：点射延迟，防止枪口上飘 (Recoil Control via Tap Firing)
                     # 0.15秒左右是比较稳的点射间隔
-                    time.sleep(0.15)
+                    time.sleep(0.05)
                 else:
                     # 如果瞄准了但没对准（可能是MapManager判定可射击但实际有微小遮挡，或者目标移动极快）
                     # 不开火，防止浪费子弹或暴露
@@ -209,15 +238,23 @@ class Training:
         mapManager = MapManager(mapName)
 
         # 启动日志读取线程
-        threading.Thread(
-            target=self.read_log_file,
-            args=(mapManager,),
-            daemon=True
-        ).start()
+        # threading.Thread(
+        #     target=self.read_log_file,
+        #     args=(mapManager,),
+        #     daemon=True
+        # ).start()
 
         # 启动数据录入线程
+        # threading.Thread(
+        #     target=self.oneTraining,
+        #     args=(mapManager,),
+        #     daemon=True
+        # ).start()
+
+
+        # 启动信息输出线程
         threading.Thread(
-            target=self.oneTraining,
+            target=self.logLoop,
             args=(mapManager,),
             daemon=True
         ).start()
@@ -230,47 +267,41 @@ class Training:
         # ).start()
 
         print("主循环已启动...")
-        last_w_press_time = time.time()
+        try:
+            while self.is_running and not self.stop_event.is_set():
+                if is_key_down(Utility.get_vk_code("end")):
+                    print("收到 END，正在退出程序...")
+                    self.is_running = False
+                    self.stop_event.set()
+                    try:
+                        mapManager.save_data()
+                    except Exception:
+                        pass
+                    os._exit(0)
 
-        while self.is_running:
-            if is_key_down(Utility.get_vk_code("end")):
-                print("收到 END，正在退出程序...")
-                self.is_running = False
-                self.stop_event.set()
-                try:
-                    mapManager.save_data()
-                except Exception:
-                    pass
-                os._exit(0)
+                if not self.reader.update_player(self.player):
+                    time.sleep(0.5)
+                    continue
 
-            # 每隔1秒按一下W键 (防掉线/保持活跃)
-            # if time.time() - last_w_press_time > 1:
-            #     vk_w = Utility.get_vk_code("w")
-            #     ctypes.windll.user32.keybd_event(vk_w, 0, 0, 0)  # 按下
-            #     time.sleep(0.2)
-            #     ctypes.windll.user32.keybd_event(vk_w, 0, 2, 0)  # 抬起
-            #     last_w_press_time = time.time()
+                new_entities = self.reader.get_all_entities(self.player, mapManager)
 
-            if not self.reader.update_player(self.player):
-                time.sleep(0.5)
-                continue
+                if not new_entities:
+                    print("实体数组为空,退出射击")
+                    self.is_running = False
+                    self.stop_event.set()
+                    break
 
-            # 获取新实体列表
-            new_entities = self.reader.get_all_entities(self.player, mapManager)
+                with self.entity_lock:
+                    self.entities = new_entities
 
-            # 如果new_entities为空，则推出循环
-            if not new_entities:
-                print("实体数组为空,退出射击")
-                break
-
-            # 更新实体列表（加锁）
-            with self.entity_lock:
-                self.entities = new_entities
-
-            time.sleep(0.01)
-        
-        # 保存地图数据
-        mapManager.save_data()
+                time.sleep(0.01)
+        finally:
+            self.is_running = False
+            self.stop_event.set()
+            try:
+                mapManager.save_data()
+            except Exception:
+                pass
 
         return None
 

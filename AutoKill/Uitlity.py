@@ -157,10 +157,14 @@ class Utility:
                 "m_iItemDefinitionIndex": get_field("C_EconItemView", "m_iItemDefinitionIndex"),
                 "m_pBoneArray": 528,  # 手动定义的 offset，通常是固定值
 
-                "m_entitySpottedState": get_field("C_CSPlayerPawn", "m_entitySpottedState"),
-                "m_bSpotted": get_field("EntitySpottedState_t", "m_bSpotted"),
                 "m_gamePhase": get_field("C_CSGameRules", "m_gamePhase"),
                 "m_iRoundTime": get_field("C_CSGameRules", "m_iRoundTime"),
+                "m_bHasMovedSinceSpawn":get_field("C_CSPlayerPawnBase" , "m_bHasMovedSinceSpawn"),
+
+                "m_entitySpottedState": get_field("C_CSPlayerPawn", "m_entitySpottedState"),
+                "m_bSpotted": get_field("EntitySpottedState_t", "m_bSpotted"),
+                "m_bSpottedByMask":get_field("EntitySpottedState_t", "m_bSpottedByMask"),
+
             }
 
             missing_keys = [k for k, v in extracted_offsets.items() if v is None]

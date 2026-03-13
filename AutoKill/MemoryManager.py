@@ -39,6 +39,11 @@ class MemoryManager:
         self.m_Item = None
         self.m_pWeaponServices = None
         self.m_hActiveWeapon = None
+        self.m_bHasMovedSinceSpawn = None
+
+        self.m_entitySpottedState = None
+        self.m_bSpotted = None
+        self.m_bSpottedByMask = None
 
 
     def initialize(self) -> bool:
@@ -119,7 +124,11 @@ class MemoryManager:
             self.m_Item = extracted["m_Item"]
             self.m_pWeaponServices = extracted["m_pWeaponServices"]
             self.m_hActiveWeapon = extracted["m_hActiveWeapon"]
+            self.m_bHasMovedSinceSpawn = extracted["m_bHasMovedSinceSpawn"]
 
+            self.m_entitySpottedState = extracted["m_entitySpottedState"]
+            self.m_bSpotted = extracted["m_bSpotted"]
+            self.m_bSpottedByMask = extracted["m_bSpottedByMask"]
 
         else:
             print("从提取的数据初始化偏移量失败。")
@@ -214,6 +223,13 @@ class MemoryManager:
         except Exception as e:
             # print(f"读取地址 {hex(address)} 处的 {count} 个浮点数失败: {e}")
             return []
+
+    def read_uint32s(self, address: int, count: int) -> list[int]:
+        try:
+            data = self.pm.read_bytes(address, count * 4)
+            return list(struct.unpack(f"<{count}I", data))
+        except Exception:
+            return [0] * count
 
     def read_int(self, address: int) -> int:
         """从内存中读取整数。"""

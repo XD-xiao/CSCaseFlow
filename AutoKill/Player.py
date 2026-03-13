@@ -15,3 +15,5 @@ class Player:
         self.isShout: int = -1
         self.weapon: str = ""
 
+        self.Spotted: bool = False
+        self.SpottedByMask: list[int] = [0, 0]
