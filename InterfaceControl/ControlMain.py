@@ -27,7 +27,6 @@ class ControlMain:
             self.currentMapName = None
         return self.currentMapName
 
-
     def chooseTeam(self):
         try:
             cs2Info = ICUtility.getWindowPosition(CS2Title)
@@ -46,3 +45,32 @@ class ControlMain:
             ICUtility.click_at(target_x, target_y)
         except Exception as e:
             print(f"选择队伍失败: {e}")
+
+
+    def intoGame(self):
+
+
+
+
+
+        return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

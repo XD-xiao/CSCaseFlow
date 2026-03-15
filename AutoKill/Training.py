@@ -16,7 +16,6 @@ from AutoKill.Uitlity import Utility
 mouse = Controller()
 input_file = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
 # input_file = r"D:\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
-output_file = "attacks.txt"
 
 pattern = re.compile(
     r'(?P<time>\d{2}/\d{2} \d{2}:\d{2}:\d{2}).*?'
