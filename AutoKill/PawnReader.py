@@ -210,6 +210,10 @@ class PawnReader:
             entity.name = Utility.transliterate(raw_name)
             
             entity.health = self.mm.read_int(entity.pawnPtr + self.mm.m_iHealth)
+            if entity.health <= 0:
+                entity.isCanShot = False
+                return True
+
             entity.team = self.mm.read_int(entity.pawnPtr + self.mm.m_iTeamNum)
             
             # 使用 game_scene 计算骨骼位置
@@ -235,15 +239,15 @@ class PawnReader:
             # 计算相对于本地玩家的瞄准角度和距离
             entity.canShoutAngle, distance = Utility.aimEnemy(player.pos, entity.pos)
 
-            # 检查可见性/有效性
-            # 注意：我们传递计算出的脚部位置。
-            # 如果记录器需要头部位置，这可能是错误的。但完全遵循用户片段。
+            # 判断entity.id 是否在player.SpottedByMask中
+            entity.spotted = entity.id in player.SpottedByMask
+            if entity.spotted:
+                entity.isCanShot = True
+                return True
+
+            # 检查可见性
             entity.isCanShot = mapManager.can_shoot(player.pos, entity.pos)
 
-            entity.weapon = self.get_weapon_type(entity.pawnPtr)
-
-            if entity.health <= 0:
-                entity.isCanShot = False
 
             return True
         except Exception as e:
@@ -365,32 +369,32 @@ class PawnReader:
         确定 Pawn 持有的武器类型。
         """
         try:
-            if not pawn_addr: return "Rifles"
+            if not pawn_addr: return "1"
 
             weapon_services_ptr = self.mm.read_longlong(pawn_addr + self.mm.m_pWeaponServices)
-            if not weapon_services_ptr: return "Rifles"
+            if not weapon_services_ptr: return "2"
 
             weapon_handle = self.mm.read_longlong(weapon_services_ptr + self.mm.m_hActiveWeapon)
-            if not weapon_handle: return "Rifles"
+            if not weapon_handle: return "3"
 
             weapon_id = weapon_handle & 0xFFFF
             
             # 从句柄获取武器实体
             weapon_entity_ptr = self._get_entity_address(weapon_id)
-            if not weapon_entity_ptr: return "Rifles"
+            if not weapon_entity_ptr: return "4"
 
             attribute_manager_ptr = self.mm.read_longlong(weapon_entity_ptr + self.mm.m_AttributeManager)
-            if not attribute_manager_ptr: return "Rifles"
+            if not attribute_manager_ptr: return "5"
 
             item_ptr = self.mm.read_longlong(attribute_manager_ptr + self.mm.m_Item)
-            if not item_ptr: return "Rifles"
+            if not item_ptr: return "6"
 
             item_id = self.mm.read_int(item_ptr + self.mm.m_iItemDefinitionIndex)
 
             weapon_map = {
                 1: "Pistols", 2: "Pistols", 3: "Pistols", 4: "Pistols", 30: "Pistols", 32: "Pistols", 36: "Pistols",
                 61: "Pistols", 63: "Pistols", 64: "Pistols",
-                7: "Rifles", 8: "Rifles", 10: "Rifles", 13: "Rifles", 16: "Rifles", 39: "Rifles", 60: "Rifles",
+                7: "7", 8: "8", 10: "10", 13: "13", 16: "Rifles", 39: "Rifles", 60: "Rifles",
                 9: "Snipers", 11: "Snipers", 38: "Snipers", 40: "Snipers",
                 17: "SMGs", 19: "SMGs", 23: "SMGs", 24: "SMGs", 26: "SMGs", 33: "SMGs", 34: "SMGs",
                 14: "Heavy", 25: "Heavy", 27: "Heavy", 28: "Heavy", 35: "Heavy"

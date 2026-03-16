@@ -6,6 +6,8 @@ from AutoKill.AutoMain import AutoKill
 from AutoKill.Uitlity import Utility
 from InterfaceControl.ControlMain import ControlMain
 
+map_fail_count = 0
+game_count = 0
 
 def is_key_down(key_code: int) -> bool:
     return ctypes.windll.user32.GetAsyncKeyState(key_code) & 0x8000
@@ -28,43 +30,43 @@ def sleep_with_end(seconds: float, step: float = 0.05) -> None:
 
 
 def game(cm: ControlMain) -> None:
-    count = 0
+    global map_fail_count
 
-    while True:
-        exit_if_end_pressed()
+    cm.chooseTeam()
+    sleep_with_end(2)
 
-        map_name = cm.mapRecognition()
-        auto_kill = AutoKill()
-
-        banner = f"===============  当前地图：{map_name}  ==============="
-        for _ in range(4):
-            print(banner)
-
-        sleep_with_end(5)
-        cm.chooseTeam()
-        sleep_with_end(4)
-
-        if count >= 2:
+    map_name = cm.mapRecognition()
+    print(f"==============================  当前地图：{map_name}  ==============================")
+    if map_name is None:
+        print("未识别地图，请检查是否进入对局")
+        sleep_with_end(2)
+        if map_fail_count >= 10:
             Utility.get_vk_code("k")  # 退出对局
-            return None
-        count += 1
+            print("地图无法识别,已退出程序")
+            os._exit(0)
+        map_fail_count += 1
+        return
 
-        Utility.get_vk_code("j")
-        auto_kill.start(map_name)
 
-        sleep_with_end(12)
-        cm.chooseTeam()
-        sleep_with_end(3)
+    map_fail_count = 0
+    auto_kill = AutoKill()
+    auto_kill.start(map_name , False)
+    sleep_with_end(20)
 
 
 if __name__ == "__main__":
-    sleep_with_end(3)
+    sleep_with_end(2)
 
     cm = ControlMain()
     while True:
         exit_if_end_pressed()
-
-        # cm.intoGame()
+        sleep_with_end(2)
 
         game(cm)
+
+        if game_count >= 3:
+            Utility.get_vk_code("k")  # 退出对局
+            print("该服务器以多次对局,以自动退出程序")
+            os._exit(0)
+        game_count += 1
 

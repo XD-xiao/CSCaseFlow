@@ -1,7 +1,9 @@
+
 from InterfaceControl import ICUtility
 
-CS2Title = "Counter-Strike 2"
 
+CS2Title = "Counter-Strike 2"
+CS2_PROCESS = "cs2.exe"
 
 class ControlMain:
 
@@ -11,9 +13,9 @@ class ControlMain:
     # 判断地图
     def mapRecognition(self):
         cs2Info = ICUtility.getWindowPosition(CS2Title)
-        ICUtility.screenshot_region(cs2Info.get("x") + 12, cs2Info.get("y") + 40, 240, 240,
+        ICUtility.screenshot_region(cs2Info.get("x") + 12, cs2Info.get("y") + 35, 251, 251,
                                     "screenshot.png")
-        imgName, similarity = ICUtility.find_most_similar_image("UiPic", "screenshot.png")
+        imgName, similarity = ICUtility.find_most_similar_image("UiPic/map", "screenshot.png", similarity_threshold=0.8)
         print(f"地图判断：{imgName}")
         if imgName == "Dust2-Map.png":
             self.currentMapName = "Dust2"
@@ -26,6 +28,25 @@ class ControlMain:
         else:
             self.currentMapName = None
         return self.currentMapName
+
+    # 主页判断
+    def homeRecognition(self):
+        cs2Info = ICUtility.getWindowPosition(CS2Title)
+        ICUtility.screenshot_region(cs2Info.get("x") + 1033, cs2Info.get("y") + 700, 200, 40,
+                                    "screenshot.png")
+        imgName, similarity = ICUtility.find_most_similar_image("UiPic/home", "screenshot.png", similarity_threshold=0.8)
+        print(f"主页判断：{imgName}")
+        if imgName is None:
+            return None
+        if imgName == "Home.png":
+            return "主页"
+        elif imgName == "match1.png":
+            return "未匹配"
+        elif imgName == "match2.png":
+            return "匹配中"
+        else:
+            return "未知"
+
 
     def chooseTeam(self):
         try:
@@ -47,13 +68,6 @@ class ControlMain:
             print(f"选择队伍失败: {e}")
 
 
-    def intoGame(self):
-
-
-
-
-
-        return None
 
 
 

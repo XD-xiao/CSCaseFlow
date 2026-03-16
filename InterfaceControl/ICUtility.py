@@ -31,7 +31,7 @@ def screenshot_region(x, y, width, height, save_path):
     return save_path
 
 
-def find_most_similar_image(folder_path, target_image_path):
+def find_most_similar_image(folder_path, target_image_path, similarity_threshold: float = 0.0):
     best_score = -1.0
     best_image_name = None
     target_image_path = os.path.join("screenshots/", target_image_path)
@@ -41,13 +41,15 @@ def find_most_similar_image(folder_path, target_image_path):
             if os.path.isfile(img_path):  # 排除子文件夹
                 try:
                     score = compare_images_ssim(target_image_path, img_path)
-                    # print(f"比较 {file_name} -> {score}")
-                    if score > best_score:
+                    print(f"比较 {file_name} -> {score}")
+                    if score >= similarity_threshold and score > best_score:
                         best_score = score
                         best_image_name = file_name
                 except Exception as e:
                     print(f"跳过 {file_name}，原因：{e}")
 
+    if best_score < similarity_threshold:
+        return None, best_score
     return best_image_name, best_score
 
 

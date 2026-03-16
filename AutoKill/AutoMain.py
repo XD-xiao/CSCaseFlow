@@ -48,10 +48,10 @@ class AutoKill:
             time.sleep(0.5)
 
             with self.player_lock:
-                player_info = f"本地玩家: 血量={self.player.health}, 队伍={self.player.team}, 坐标={self.player.pos}"
+                player_info = f"本地玩家: 位置:{self.player.pos} | 生命值:{self.player.health}"
 
             print("-" * 50)
-            # print(player_info)
+            print(player_info)
 
 
             
@@ -61,7 +61,25 @@ class AutoKill:
             print(f"发现实体数量: {len(current_entities)}")
 
             for i, ent in enumerate(current_entities):
-                print(f"{i}: {ent}")
+                if ent.spotted:
+                    print(f"{i}: {ent.name} | 敌人被发现 位置:{ent.pos} s")
+
+            print("-" * 50)
+
+    def learn(self , mapManager: MapManager):
+        print("学习线程已启动...")
+        while not self.stop_event.is_set():
+            time.sleep(0.5)
+
+
+            with self.entity_lock:
+                current_entities = list(self.entities)
+
+            print(f"发现实体数量: {len(current_entities)}")
+
+            for i, ent in enumerate(current_entities):
+                if ent.spotted:
+                    mapManager.add_walkable_path(ent.pos,  self.player.pos)
 
             print("-" * 50)
 
@@ -72,6 +90,12 @@ class AutoKill:
             # 1. 随机时间（5秒内）
             sleep_time = random.uniform(0.1, 2.0)
             time.sleep(sleep_time)
+
+            if Utility.is_game_active():
+                vk_code = Utility.get_vk_code("j")
+                ctypes.windll.user32.keybd_event(vk_code, 0, 0, 0)
+                time.sleep(0.02)
+                ctypes.windll.user32.keybd_event(vk_code, 0, 2, 0)
             
             if self.stop_event.is_set():
                 break
@@ -134,7 +158,7 @@ class AutoKill:
         print("智能自动击杀已启动 (点射模式)...")
         while not self.stop_event.is_set():
             # 基础循环间隔，让出CPU
-            time.sleep(0.005)
+            time.sleep(0.003)
 
             # 获取最新实体列表
             with self.entity_lock:
@@ -191,7 +215,7 @@ class AutoKill:
                     mouse.click(Button.left)
                     # 关键：点射延迟，防止枪口上飘 (Recoil Control via Tap Firing)
                     # 0.15秒左右是比较稳的点射间隔
-                    time.sleep(0.05)
+                    time.sleep(0.08)
                 else:
                     # 如果瞄准了但没对准（可能是MapManager判定可射击但实际有微小遮挡，或者目标移动极快）
                     # 不开火，防止浪费子弹或暴露
@@ -201,7 +225,7 @@ class AutoKill:
                 # 如果没有可射击目标，稍微多睡一会
                 time.sleep(0.02)
 
-    def start(self , mapName: str) -> None:
+    def start(self , mapName: str , isLearn: bool = False) -> None:
         print("正在初始化...")
         if not self.mem.initialize():
             print("初始化内存管理器失败。")
@@ -213,6 +237,13 @@ class AutoKill:
 
         mapManager = MapManager(mapName)
 
+        # 启动学习线程
+        if isLearn:
+            threading.Thread(
+                target=self.learn,
+                args=(mapManager,),
+                daemon=True
+            ).start()
 
         # threading.Thread(
         #     target=self.logLoop,
@@ -234,8 +265,7 @@ class AutoKill:
         ).start()
 
         print("主循环已启动...")
-        last_w_press_time = time.time()
-        
+
         while self.is_running:
             if is_key_down(Utility.get_vk_code("end")):
                 print("收到 END，正在退出程序...")
@@ -246,19 +276,13 @@ class AutoKill:
                 except Exception as e:
                     print(f"保存数据失败: {e}")
                 os._exit(0)
-            
-            # 每隔1秒按一下W键 (防掉线/保持活跃)
-            # if time.time() - last_w_press_time > 0.5:
-            #     vk_w = Utility.get_vk_code("w")
-            #     ctypes.windll.user32.keybd_event(vk_w, 0, 0, 0)  # 按下
-            #     time.sleep(0.25)
-            #     ctypes.windll.user32.keybd_event(vk_w, 0, 2, 0)  # 抬起
-            #     last_w_press_time = time.time()
+
+
 
             if not self.reader.update_player(self.player):
                 time.sleep(0.5)
                 continue
-            
+
             # 获取新实体列表
             new_entities = self.reader.get_all_entities(self.player,mapManager)
             
@@ -267,17 +291,16 @@ class AutoKill:
                 print("实体数组为空,退出射击")
                 self.is_running = False
                 self.stop_event.set()
+                mapManager.save_data()
                 break
 
             # 更新实体列表（加锁）
             with self.entity_lock:
                 self.entities = new_entities
             
-            time.sleep(0.005)
-            
+            time.sleep(0.003)
 
-
-        return 0
+        return None
 
 
 
