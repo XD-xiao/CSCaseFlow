@@ -158,7 +158,7 @@ class AutoKill:
         print("智能自动击杀已启动 (点射模式)...")
         while not self.stop_event.is_set():
             # 基础循环间隔，让出CPU
-            time.sleep(0.003)
+            time.sleep(0.004)
 
             # 获取最新实体列表
             with self.entity_lock:

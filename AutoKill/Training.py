@@ -237,33 +237,33 @@ class Training:
         mapManager = MapManager(mapName)
 
         # 启动日志读取线程
-        # threading.Thread(
-        #     target=self.read_log_file,
-        #     args=(mapManager,),
-        #     daemon=True
-        # ).start()
-
-        # 启动数据录入线程
-        # threading.Thread(
-        #     target=self.oneTraining,
-        #     args=(mapManager,),
-        #     daemon=True
-        # ).start()
-
-
-        # 启动信息输出线程
         threading.Thread(
-            target=self.logLoop,
+            target=self.read_log_file,
             args=(mapManager,),
             daemon=True
         ).start()
 
-        # 启动智能击杀线程
+        # 启动数据录入线程
+        threading.Thread(
+            target=self.oneTraining,
+            args=(mapManager,),
+            daemon=True
+        ).start()
+
+
+        # 启动信息输出线程
         # threading.Thread(
-        #     target=self.smart_kill,
+        #     target=self.logLoop,
         #     args=(mapManager,),
         #     daemon=True
         # ).start()
+
+        # 启动智能击杀线程
+        threading.Thread(
+            target=self.smart_kill,
+            args=(mapManager,),
+            daemon=True
+        ).start()
 
         print("主循环已启动...")
         try:
