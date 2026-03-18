@@ -1,5 +1,5 @@
 // Generated using https://github.com/a2x/cs2-dumper
-// 2026-03-17 02:51:40.325666900 UTC
+// 2026-03-18 04:41:55.040271400 UTC
 
 namespace CS2Dumper.Schemas {
     // Module: animationsystem.dll

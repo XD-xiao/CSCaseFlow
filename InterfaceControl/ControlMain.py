@@ -15,6 +15,8 @@ class ControlMain:
         cs2Info = ICUtility.getWindowPosition(CS2Title)
         ICUtility.screenshot_region(cs2Info.get("x") + 12, cs2Info.get("y") + 35, 251, 251,
                                     "screenshot.png")
+        # ICUtility.screenshot_region(cs2Info.get("x") + 13, cs2Info.get("y") + 36, 276, 276,
+        #                             "screenshot.png")
         imgName, similarity = ICUtility.find_most_similar_image("UiPic/map", "screenshot.png", similarity_threshold=0.8)
         print(f"地图判断：{imgName}")
         if imgName == "Dust2-Map.png":
