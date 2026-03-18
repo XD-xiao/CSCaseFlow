@@ -75,7 +75,7 @@ class AutoKill:
             with self.entity_lock:
                 current_entities = list(self.entities)
 
-            print(f"发现实体数量: {len(current_entities)}")
+            # print(f"发现实体数量: {len(current_entities)}")
 
             for i, ent in enumerate(current_entities):
                 if ent.spotted:
