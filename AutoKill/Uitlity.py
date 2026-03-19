@@ -1,15 +1,23 @@
 import os
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional
 import math
 
-import requests
 import psutil
-import sys
 import pygetwindow as gw
 import orjson
-from packaging import version
 import ctypes
 import time
+
+from Setting.Setting import (
+    CS2_PROCESS_NAME,
+    CS2_TITLE,
+    MOUSEEVENTF_MOVE,
+    OFFSETS_BUTTONS_JSON,
+    OFFSETS_CLIENT_DLL_JSON,
+    OFFSETS_DIR_NAME,
+    OFFSETS_OFFSETS_JSON,
+    OFFSETS_OUTPUT_DIR_NAME,
+)
 
 # --- Windows API 定义 ---
 PUL = ctypes.POINTER(ctypes.c_ulong)
@@ -36,52 +44,78 @@ class Input(ctypes.Structure):
 
 SendInput = ctypes.windll.user32.SendInput
 
-# --- 常量 ---
-MOUSEEVENTF_MOVE = 0x0001  # 相对移动
-
-
 class Utility:
-    @staticmethod
-    def fetch_offsets():
-        """
-        从本地文件加载偏移量数据。
-        """
-        try:
-            # 获取当前文件所在目录 (AutoKill)
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            # 获取项目根目录
-            project_root = os.path.dirname(current_dir)
-            # 构建 Offsets/output 的绝对路径
-            base_dir = os.path.join(project_root, "Offsets", "output")
-            
-            with open(os.path.join(base_dir, "offsets.json"), "rb") as f:
-                offset = orjson.loads(f.read())
-            with open(os.path.join(base_dir, "client_dll.json"), "rb") as f:
-                client = orjson.loads(f.read())
-            with open(os.path.join(base_dir, "buttons.json"), "rb") as f:
-                buttons = orjson.loads(f.read())
-            return offset, client, buttons
-
-        except FileNotFoundError as e:
-            print(f"缺少本地文件: {e}")
-            return None, None, None
-        except orjson.JSONDecodeError as e:
-            print(f"解析 JSON 失败: {e}")
-            return None, None, None
-        except Exception as e:
-            print(f"加载偏移量时发生意外错误: {e}")
-            return None, None, None
 
     @staticmethod
     def is_game_active():
         """使用 pygetwindow 检查游戏窗口是否处于活动状态。"""
-        windows = gw.getWindowsWithTitle('Counter-Strike 2')
+        windows = gw.getWindowsWithTitle(CS2_TITLE)
         return any(window.isActive for window in windows)
 
     @staticmethod
-    def is_game_running():
-        """使用 psutil 检查游戏进程是否正在运行。"""
-        return any(proc.info['name'] == 'cs2.exe' for proc in psutil.process_iter(attrs=['name']))
+    def is_key_down(key_code: int) -> bool:
+        return bool(ctypes.windll.user32.GetAsyncKeyState(key_code) & 0x8000)
+
+    @staticmethod
+    def is_key_down_name(key: str) -> bool:
+        return Utility.is_key_down(Utility.get_vk_code(key))
+
+    @staticmethod
+    def end_pressed() -> bool:
+        return Utility.is_key_down_name("end")
+
+    @staticmethod
+    def request_stop_if_end_pressed(
+        stop_event: Optional[object] = None,
+        on_end: Optional[Callable[[], Any]] = None,
+        hard_exit: bool = False,
+    ) -> bool:
+        if not Utility.end_pressed():
+            return False
+
+        print("收到 END，正在退出程序...")
+        if stop_event is not None:
+            stop_event.set()
+        if on_end is not None:
+            on_end()
+        if hard_exit:
+            os._exit(0)
+        return True
+
+    @staticmethod
+    def key_down_vk(vk_code: int) -> None:
+        ctypes.windll.user32.keybd_event(vk_code, 0, 0, 0)
+
+    @staticmethod
+    def key_up_vk(vk_code: int) -> None:
+        ctypes.windll.user32.keybd_event(vk_code, 0, 2, 0)
+
+    @staticmethod
+    def key_down(key: str) -> None:
+        Utility.key_down_vk(Utility.get_vk_code(key))
+
+    @staticmethod
+    def key_up(key: str) -> None:
+        Utility.key_up_vk(Utility.get_vk_code(key))
+
+    @staticmethod
+    def tap_key(
+        key: str,
+        hold: float = 0.02,
+        only_when_game_active: bool = False,
+        stop_event: Optional[object] = None,
+    ) -> bool:
+        if stop_event is not None and stop_event.is_set():
+            return False
+        if only_when_game_active and not Utility.is_game_active():
+            return False
+
+        vk_code = Utility.get_vk_code(key)
+        Utility.key_down_vk(vk_code)
+        if hold > 0:
+            Utility.sleep_with_end(hold, stop_event=stop_event)
+        Utility.key_up_vk(vk_code)
+        return True
 
     @staticmethod
     def extract_offsets() -> dict | None:
@@ -94,12 +128,12 @@ class Utility:
             # 获取项目根目录
             project_root = os.path.dirname(current_dir)
             # 构建 Offsets/output 的绝对路径
-            base_dir = os.path.join(project_root, "Offsets", "output")
+            base_dir = os.path.join(project_root, OFFSETS_DIR_NAME, OFFSETS_OUTPUT_DIR_NAME)
 
             # 本地文件路径
-            offsets_path = os.path.join(base_dir, "offsets.json")
-            client_path = os.path.join(base_dir, "client_dll.json")
-            buttons_path = os.path.join(base_dir, "buttons.json")
+            offsets_path = os.path.join(base_dir, OFFSETS_OFFSETS_JSON)
+            client_path = os.path.join(base_dir, OFFSETS_CLIENT_DLL_JSON)
+            buttons_path = os.path.join(base_dir, OFFSETS_BUTTONS_JSON)
 
             # 加载 JSON 文件
             with open(offsets_path, "rb") as f:
@@ -155,7 +189,6 @@ class Utility:
                 "m_AttributeManager": get_field("C_EconEntity", "m_AttributeManager"),
                 "m_Item": get_field("C_AttributeContainer", "m_Item"),
                 "m_iItemDefinitionIndex": get_field("C_EconItemView", "m_iItemDefinitionIndex"),
-                "m_pBoneArray": 528,  # 手动定义的 offset，通常是固定值
 
                 "m_gamePhase": get_field("C_CSGameRules", "m_gamePhase"),
                 "m_iRoundTime": get_field("C_CSGameRules", "m_iRoundTime"),
@@ -328,3 +361,25 @@ class Utility:
             'Я': 'Ya', 'я': 'ya'
         }
         return "".join(mapping.get(char, char) for char in text)
+
+    @staticmethod
+    def make_spawn_pos(x: str, y: str, z: str) -> Dict[str, float]:
+        """把坐标转为 dict[str, float]"""
+        return {"x": float(x), "y": float(y), "z": float(z)}
+
+    @staticmethod
+    def exit_if_end_pressed() -> None:
+        Utility.request_stop_if_end_pressed(hard_exit=True)
+
+    @staticmethod
+    def sleep_with_end(seconds: float, step: float = 0.05, stop_event: Optional[object] = None) -> None:
+        end_time = time.time() + seconds
+        while True:
+            if stop_event is not None and stop_event.is_set():
+                return
+            if Utility.request_stop_if_end_pressed(stop_event=stop_event, hard_exit=stop_event is None):
+                return
+            remaining = end_time - time.time()
+            if remaining <= 0:
+                return
+            time.sleep(min(step, remaining))

@@ -31,6 +31,7 @@ class Entity:
         self.id: int = 0  # 实体ID，用于唯一标识实体
 
         self.pos2d: Optional[Dict[str, float]] = None  # 实体在屏幕上的二维坐标（世界坐标投影到屏幕），用于绘图
+        self.distance: float = 0.0  # 实体与玩家的距离
         self.head_pos2d: Optional[Dict[str, float]] = None  # 实体头部在屏幕上的二维坐标，用于绘图（如血条、名字）
 
         # 缓存的数据

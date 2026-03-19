@@ -27,23 +27,12 @@ pattern = re.compile(
 )
 
 
-def is_key_down(key_code):
-    return ctypes.windll.user32.GetAsyncKeyState(key_code) & 0x8000
 
-def make_spawn_pos(x: str, y: str, z: str) -> Dict[str, float]:
-    """把坐标转为 dict[str, float]"""
-    return {"x": float(x), "y": float(y), "z": float(z)}
 
 class Training:
     def __init__(self) -> None:
         # 1. 初始化内存管理器（内部加载偏移量）
-        utility = Utility()
-        buttons_data, offsets, client_data = utility.fetch_offsets()
-        if offsets is None or client_data is None or buttons_data is None:
-            print("错误：无法加载偏移量数据。")
-            self.mem = MemoryManager({}, {}, {})
-        else:
-            self.mem = MemoryManager(offsets, client_data, buttons_data)
+        self.mem = MemoryManager()
 
         # 2. 初始化逻辑层
         self.reader = PawnReader(self.mem)
@@ -71,9 +60,9 @@ class Training:
                     match = pattern.search(line)
                     if match:
                         attacker = match.group("attacker")
-                        attacker_pos = make_spawn_pos(match.group("ax"), match.group("ay"), match.group("az"))
+                        attacker_pos = Utility.make_spawn_pos(match.group("ax"), match.group("ay"), match.group("az"))
                         victim = match.group("victim")
-                        victim_pos = make_spawn_pos(match.group("vx"), match.group("vy"), match.group("vz"))
+                        victim_pos = Utility.make_spawn_pos(match.group("vx"), match.group("vy"), match.group("vz"))
 
                         record = (
                             f"时间: {match.group('time')} | 攻击者: {attacker} 坐标: {attacker_pos} "
@@ -268,7 +257,7 @@ class Training:
         print("主循环已启动...")
         try:
             while self.is_running and not self.stop_event.is_set():
-                if is_key_down(Utility.get_vk_code("end")):
+                if Utility.is_key_down(Utility.get_vk_code("end")):
                     print("收到 END，正在退出程序...")
                     self.is_running = False
                     self.stop_event.set()

@@ -1,9 +1,20 @@
 
+import os
+
 from InterfaceControl import ICUtility
+from Setting.Setting import (
+    CHOOSE_TEAM_OFFSET_X,
+    CHOOSE_TEAM_OFFSET_Y,
+    CS2_TITLE,
+    MAP_IMAGE_DIR,
+    MAP_SCREENSHOT_HEIGHT,
+    MAP_SCREENSHOT_OFFSET_X,
+    MAP_SCREENSHOT_OFFSET_Y,
+    MAP_SCREENSHOT_PATH,
+    MAP_SCREENSHOT_WIDTH,
+    MAP_SIMILARITY_THRESHOLD,
+)
 
-
-CS2Title = "Counter-Strike 2"
-CS2_PROCESS = "cs2.exe"
 
 class ControlMain:
 
@@ -12,53 +23,47 @@ class ControlMain:
 
     # 判断地图
     def mapRecognition(self):
-        cs2Info = ICUtility.getWindowPosition(CS2Title)
-        ICUtility.screenshot_region(cs2Info.get("x") + 12, cs2Info.get("y") + 35, 251, 251,
-                                    "screenshot.png")
-        # ICUtility.screenshot_region(cs2Info.get("x") + 13, cs2Info.get("y") + 36, 276, 276,
-        #                             "screenshot.png")
-        imgName, similarity = ICUtility.find_most_similar_image("UiPic/map", "screenshot.png", similarity_threshold=0.8)
+        cs2Info = ICUtility.getWindowPosition(CS2_TITLE)
+        ICUtility.screenshot_region(
+            cs2Info.get("x") + MAP_SCREENSHOT_OFFSET_X,
+            cs2Info.get("y") + MAP_SCREENSHOT_OFFSET_Y,
+            MAP_SCREENSHOT_WIDTH,
+            MAP_SCREENSHOT_HEIGHT,
+            MAP_SCREENSHOT_PATH,
+        )
+        imgName, similarity = ICUtility.find_most_similar_image(
+            MAP_IMAGE_DIR,
+            MAP_SCREENSHOT_PATH,
+            similarity_threshold=MAP_SIMILARITY_THRESHOLD,
+        )
         print(f"地图判断：{imgName}")
-        if imgName == "Dust2-Map.png":
-            self.currentMapName = "Dust2"
-        elif imgName == "Mirage-Map.png":
-            self.currentMapName = "Mirage"
-        elif imgName == "Inferno-Map.png":
-            self.currentMapName = "Inferno"
-        elif imgName == "Vertigo-Map1.png" or imgName == "Vertigo-Map2.png":
-            self.currentMapName = "Vertigo"
-        else:
-            self.currentMapName = None
+        self.currentMapName = self._extractMapName(imgName)
         return self.currentMapName
 
-    # 主页判断
-    def homeRecognition(self):
-        cs2Info = ICUtility.getWindowPosition(CS2Title)
-        ICUtility.screenshot_region(cs2Info.get("x") + 1033, cs2Info.get("y") + 700, 200, 40,
-                                    "screenshot.png")
-        imgName, similarity = ICUtility.find_most_similar_image("UiPic/home", "screenshot.png", similarity_threshold=0.8)
-        print(f"主页判断：{imgName}")
-        if imgName is None:
+    def _extractMapName(self, imgName):
+        if not imgName:
             return None
-        if imgName == "Home.png":
-            return "主页"
-        elif imgName == "match1.png":
-            return "未匹配"
-        elif imgName == "match2.png":
-            return "匹配中"
-        else:
-            return "未知"
+
+        fileName = os.path.basename(imgName)
+        stem, ext = os.path.splitext(fileName)
+        if not stem:
+            return None
+
+        left, sep, right = stem.rpartition("-")
+        if sep and right.isdigit() and left:
+            return left
+        return stem
 
 
     def chooseTeam(self):
         try:
-            cs2Info = ICUtility.getWindowPosition(CS2Title)
+            cs2Info = ICUtility.getWindowPosition(CS2_TITLE)
             if not cs2Info:
-                print(f"未找到窗口: {CS2Title}")
+                print(f"未找到窗口: {CS2_TITLE}")
                 return
 
-            target_x = cs2Info.get("x") + 700
-            target_y = cs2Info.get("y") + 400
+            target_x = cs2Info.get("x") + CHOOSE_TEAM_OFFSET_X
+            target_y = cs2Info.get("y") + CHOOSE_TEAM_OFFSET_Y
             
             # 增加对坐标的简单校验，防止无效坐标
             if target_x < 0 or target_y < 0:

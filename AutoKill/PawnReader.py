@@ -8,12 +8,7 @@ from AutoKill.MemoryManager import MemoryManager
 from AutoKill.Entity import Entity
 from AutoKill.Player import Player
 from AutoKill.Uitlity import Utility
-
-
-
-
-ENTITY_COUNT = 64
-ENTITY_ENTRY_SIZE = 112
+from Setting.Setting import ENTITY_COUNT, ENTITY_ENTRY_SIZE
 
 
 class PawnReader:
@@ -29,32 +24,26 @@ class PawnReader:
 
         try:
             # 获取本地玩家 Pawn 地址
-            player_pawn_addr = self.mm.read_longlong(self.mm.client_base + self.mm.dwLocalPlayerPawn)
-            if not player_pawn_addr:
+            player.pawnPtr = self.mm.read_longlong(self.mm.client_base + self.mm.dwLocalPlayerPawn)
+            if not player.pawnPtr:
                 return False
-
-            player.pawnPtr = player_pawn_addr
             
             # 读取玩家数据
-            player.health = self.mm.read_int(player_pawn_addr + self.mm.m_iHealth)
-            player.team = self.mm.read_int(player_pawn_addr + self.mm.m_iTeamNum)
-            player.pos = self.mm.read_vec3(player_pawn_addr + self.mm.m_vOldOrigin)
-            
-            # 视角角度（通常存储在 Client State / LocalPlayerController 中，但此处从 Pawn 读取眼部角度）
-            # 注意：控制用的 ViewAngles 通常来自 Client State 中的 dwViewAngles 或类似变量
-            # 原始代码从 Pawn 读取 m_angEyeAngles
-            player.angle = self.mm.read_vec2(player_pawn_addr + self.mm.m_angEyeAngles)
-            
-            player.weapon = self.get_weapon_type(player_pawn_addr)
-            
-            # 检查是否射击
-            # 它检查准星 ID 是否大于 0
-            player.isShout = self.get_fire_logic_data()
+            player.health = self.mm.read_int(player.pawnPtr + self.mm.m_iHealth)
+            player.team = self.mm.read_int(player.pawnPtr + self.mm.m_iTeamNum)
+            player.pos = self.mm.read_vec3(player.pawnPtr + self.mm.m_vOldOrigin)
 
-            player.Spotted = bool(self.mm.read_int(player_pawn_addr + self.mm.m_entitySpottedState + self.mm.m_bSpotted))
+            player.angle = self.mm.read_vec2(player.pawnPtr + self.mm.m_angEyeAngles)
+            
+            # player.weapon = self.get_weapon_type(player_pawn_addr)
+            
+            # 检查是否可以射击
+            player.isShout = self.get_fire_logic_data(player)
+
+            player.Spotted = bool(self.mm.read_int(player.pawnPtr + self.mm.m_entitySpottedState + self.mm.m_bSpotted))
 
             spotted_by_mask = self.mm.read_uint32s(
-                player_pawn_addr + self.mm.m_entitySpottedState + self.mm.m_bSpottedByMask,
+                player.pawnPtr + self.mm.m_entitySpottedState + self.mm.m_bSpottedByMask,
                 2,
             )
             mask0, mask1 = spotted_by_mask
@@ -78,19 +67,17 @@ class PawnReader:
 
             return True
         except Exception as e:
-            # print(f"Error updating player: {e}")
             return False
     def update_IsShout(self, player: Player) -> bool:
-        player.isShout = self.get_fire_logic_data()
+        player.isShout = self.get_fire_logic_data(player)
         if player.isShout is not None:
             return True
         return False
 
-    def get_fire_logic_data(self) -> int | None:
+    def get_fire_logic_data(self, player: Player) -> int | None:
         """Retrieve data necessary for firing logic."""
         try:
-            player = self.mm.read_longlong(self.mm.client_base + self.mm.dwLocalPlayerPawn)
-            entity_id = self.mm.read_int(player + self.mm.m_iIDEntIndex)
+            entity_id = self.mm.read_int(player.pawnPtr + self.mm.m_iIDEntIndex)
 
             if entity_id > 0:
                 entity = self.get_entity(entity_id)
@@ -191,64 +178,46 @@ class PawnReader:
             if not entity.pawnPtr:
                 return False
 
-            # 首先读取 GameSceneNode，因为多个字段需要它
             game_scene = self.mm.read_longlong(entity.pawnPtr + self.mm.m_pGameSceneNode)
             if not game_scene:
                 entity.isCanShot = False
                 return False
 
-
-            entity.invincible = bool(self.mm.read_int(( entity.pawnPtr + self.mm.m_bHasMovedSinceSpawn)))
-
-            # 如果无敌，跳过后续处理以节省资源
+            entity.invincible = bool(self.mm.read_int(entity.pawnPtr + self.mm.m_bHasMovedSinceSpawn))
             if not entity.invincible:
                 entity.isCanShot = False
                 return True
 
-
-            raw_name = self.mm.read_string(entity.localControllerPtr + self.mm.m_iszPlayerName)
-            entity.name = Utility.transliterate(raw_name)
-            
             entity.health = self.mm.read_int(entity.pawnPtr + self.mm.m_iHealth)
             if entity.health <= 0:
                 entity.isCanShot = False
                 return True
 
-            entity.team = self.mm.read_int(entity.pawnPtr + self.mm.m_iTeamNum)
-            
-            # 使用 game_scene 计算骨骼位置
-            bone_id = 6 if (entity.health >= 92 ) else 4
-            entity.pos = self.bone_pos(bone_id, game_scene ,entity.pawnPtr)
-                
-            # 验证骨骼位置
+            bone_id = 6 if entity.health >= 93 else 4
+            entity.pos = self.bone_pos(bone_id, game_scene, entity.pawnPtr)
             if entity.pos['x'] == 0 and entity.pos['y'] == 0 and entity.pos['z'] == 0:
-                # 如果骨骼位置失败，回退到原点
                 entity.pos = self.mm.read_vec3(entity.pawnPtr + self.mm.m_vOldOrigin)
             else:
                 entity.pos['z'] = entity.pos.get('z', 0) - 64
 
             entity.angle = self.mm.read_vec2(entity.pawnPtr + self.mm.m_angEyeAngles)
-            
-            # 计算预测位置
-            # x + cos(yaw) * 6, y + sin(yaw) * 6
-            # 这稍微预测了他们将在哪里？
             yaw_rad = math.radians(entity.angle['y'])
             entity.pos['x'] = entity.pos.get('x', 0) + math.cos(yaw_rad) * 6
             entity.pos['y'] = entity.pos.get('y', 0) + math.sin(yaw_rad) * 6
 
-            # 计算相对于本地玩家的瞄准角度和距离
-            entity.canShoutAngle, distance = Utility.aimEnemy(player.pos, entity.pos)
+            entity.canShoutAngle, entity.distance = Utility.aimEnemy(player.pos, entity.pos)
 
-            # 判断entity.id 是否在player.SpottedByMask中
             entity.spotted = entity.id in player.SpottedByMask
             if entity.spotted:
                 entity.isCanShot = True
                 return True
 
-            # 检查可见性
             entity.isCanShot = mapManager.can_shoot(player.pos, entity.pos)
 
-
+            raw_name = self.mm.read_string(entity.localControllerPtr + self.mm.m_iszPlayerName)
+            entity.name = Utility.transliterate(raw_name)
+            entity.team = self.mm.read_int(entity.pawnPtr + self.mm.m_iTeamNum)
+            
             return True
         except Exception as e:
             # print(f"Failed to update entity data: {e}")
@@ -346,59 +315,43 @@ class PawnReader:
         except Exception as e:
             return {"x": 0.0, "y": 0.0, "z": 0.0}
 
-    def _get_entity_address(self, index: int) -> int:
-        """从索引获取实体地址的辅助函数。"""
-        try:
-            list_offset = 0x8 * (index >> 9)
-            ent_entry = self.mm.read_longlong(self.mm.ent_list + list_offset + 0x10)
-            if not ent_entry: return 0
+
+
+    # def get_weapon_type(self, pawn_addr: int) -> str:
+    #     """
+    #     确定 Pawn 持有的武器类型。
+    #     """
+    #     try:
+    #         if not pawn_addr: return "1"
+
+    #         weapon_services_ptr = self.mm.read_longlong(pawn_addr + self.mm.m_pWeaponServices)
+    #         if not weapon_services_ptr: return "2"
+
+    #         weapon_handle = self.mm.read_longlong(weapon_services_ptr + self.mm.m_hActiveWeapon)
+    #         if not weapon_handle: return "3"
+
+    #         weapon_id = weapon_handle & 0xFFFF
             
-            entity_offset = 120 * (index & 0x1FF)
-            return self.mm.read_longlong(ent_entry + entity_offset)
-        except:
-            return 0
+    #         # 从句柄获取武器实体
+    #         weapon_entity_ptr = self._get_entity_address(weapon_id)
+    #         if not weapon_entity_ptr: return "4"
 
-    def _read_player_name(self, entity_pawn_addr: int) -> str:
-        # 名字通常在 Controller 中，而不是 Pawn。
-        # 这需要找到 Pawn 的控制器。
-        # 为了简单起见，返回空或如果存在偏移量则实现
-        return ""
+    #         attribute_manager_ptr = self.mm.read_longlong(weapon_entity_ptr + self.mm.m_AttributeManager)
+    #         if not attribute_manager_ptr: return "5"
 
-    def get_weapon_type(self, pawn_addr: int) -> str:
-        """
-        确定 Pawn 持有的武器类型。
-        """
-        try:
-            if not pawn_addr: return "1"
+    #         item_ptr = self.mm.read_longlong(attribute_manager_ptr + self.mm.m_Item)
+    #         if not item_ptr: return "6"
 
-            weapon_services_ptr = self.mm.read_longlong(pawn_addr + self.mm.m_pWeaponServices)
-            if not weapon_services_ptr: return "2"
+    #         item_id = self.mm.read_int(item_ptr + self.mm.m_iItemDefinitionIndex)
 
-            weapon_handle = self.mm.read_longlong(weapon_services_ptr + self.mm.m_hActiveWeapon)
-            if not weapon_handle: return "3"
-
-            weapon_id = weapon_handle & 0xFFFF
-            
-            # 从句柄获取武器实体
-            weapon_entity_ptr = self._get_entity_address(weapon_id)
-            if not weapon_entity_ptr: return "4"
-
-            attribute_manager_ptr = self.mm.read_longlong(weapon_entity_ptr + self.mm.m_AttributeManager)
-            if not attribute_manager_ptr: return "5"
-
-            item_ptr = self.mm.read_longlong(attribute_manager_ptr + self.mm.m_Item)
-            if not item_ptr: return "6"
-
-            item_id = self.mm.read_int(item_ptr + self.mm.m_iItemDefinitionIndex)
-
-            weapon_map = {
-                1: "Pistols", 2: "Pistols", 3: "Pistols", 4: "Pistols", 30: "Pistols", 32: "Pistols", 36: "Pistols",
-                61: "Pistols", 63: "Pistols", 64: "Pistols",
-                7: "7", 8: "8", 10: "10", 13: "13", 16: "Rifles", 39: "Rifles", 60: "Rifles",
-                9: "Snipers", 11: "Snipers", 38: "Snipers", 40: "Snipers",
-                17: "SMGs", 19: "SMGs", 23: "SMGs", 24: "SMGs", 26: "SMGs", 33: "SMGs", 34: "SMGs",
-                14: "Heavy", 25: "Heavy", 27: "Heavy", 28: "Heavy", 35: "Heavy"
-            }
-            return weapon_map.get(item_id, "Rifles")
-        except Exception as e:
-            return "Rifles"
+    #         weapon_map = {
+    #             1: "Pistols", 2: "Pistols", 3: "Pistols", 4: "Pistols", 30: "Pistols", 32: "Pistols", 36: "Pistols",
+    #             61: "Pistols", 63: "Pistols", 64: "Pistols",
+    #             7: "7", 8: "8", 10: "10", 13: "13", 16: "Rifles", 39: "Rifles", 60: "Rifles",
+    #             9: "Snipers", 11: "Snipers", 38: "Snipers", 40: "Snipers",
+    #             17: "SMGs", 19: "SMGs", 23: "SMGs", 24: "SMGs", 26: "SMGs", 33: "SMGs", 34: "SMGs",
+    #             14: "Heavy", 25: "Heavy", 27: "Heavy", 28: "Heavy", 35: "Heavy"
+    #         }
+    #         return weapon_map.get(item_id, "Rifles")
+    #     except Exception as e:
+    #         return "Rifles"

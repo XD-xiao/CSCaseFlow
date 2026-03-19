@@ -41,7 +41,7 @@ def find_most_similar_image(folder_path, target_image_path, similarity_threshold
             if os.path.isfile(img_path):  # 排除子文件夹
                 try:
                     score = compare_images_ssim(target_image_path, img_path)
-                    print(f"比较 {file_name} -> {score}")
+                    print(f"  比较 {file_name} -> {score}")
                     if score >= similarity_threshold and score > best_score:
                         best_score = score
                         best_image_name = file_name

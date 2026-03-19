@@ -1,97 +1,47 @@
-import ctypes
+import json
 import os
-import time
+import pickle
 
 
-input_file = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo\console.log"
-dust2 = "[Client] loaded spawngroup(  1)  : SV:  [1: de_dust2 | main lump | mapload]"
-mirage = " [Client] loaded spawngroup(  1)  : SV:  [1: de_mirage | main lump | mapload]"
-pipei = "[Developer] Matchmaking update: 1"
+def migrate_mapdata_json_to_pickle(map_data_dir: str) -> None:
+    json_files = [
+        os.path.join(map_data_dir, name)
+        for name in os.listdir(map_data_dir)
+        if name.lower().endswith(".json")
+    ]
 
+    migrated = 0
+    skipped = 0
+    failed = 0
 
-def press_p() -> None:
-    vk_code = 0x50
-    ctypes.windll.user32.keybd_event(vk_code, 0, 0, 0)
-    time.sleep(0.02)
-    ctypes.windll.user32.keybd_event(vk_code, 0, 2, 0)
+    for json_path in sorted(json_files):
+        base_name = os.path.splitext(os.path.basename(json_path))[0]
+        pickle_path = os.path.join(map_data_dir, f"{base_name}.pkl")
 
-
-class LogTailer:
-    def __init__(self, path: str):
-        self.path = path
-        self._inode = None
-        self._file = None
-        self._pos = 0
-
-    def _open_if_needed(self) -> bool:
         try:
-            st = os.stat(self.path)
-        except FileNotFoundError:
-            self._close()
-            return False
+            with open(json_path, "r", encoding="utf-8") as f:
+                data_list = json.load(f)
 
-        inode = getattr(st, "st_ino", None)
-        if self._file is None or inode != self._inode:
-            self._close()
-            self._file = open(self.path, "r", encoding="utf-8", errors="ignore")
-            self._inode = inode
-            self._file.seek(0, os.SEEK_END)
-            self._pos = self._file.tell()
-            return True
+            data_set = set(tuple(p) for p in data_list)
 
-        if st.st_size < self._pos:
-            self._file.seek(0, os.SEEK_END)
-            self._pos = self._file.tell()
-
-        return True
-
-    def _close(self) -> None:
-        if self._file is not None:
-            try:
-                self._file.close()
-            finally:
-                self._file = None
-        self._inode = None
-        self._pos = 0
-
-    def poll_state(self, timeout_s: float = 1.0):
-        start = time.time()
-        while time.time() - start < timeout_s:
-            if not self._open_if_needed():
-                time.sleep(0.2)
+            if os.path.exists(pickle_path):
+                skipped += 1
                 continue
 
-            line = self._file.readline()
-            if not line:
-                self._pos = self._file.tell()
-                time.sleep(0.05)
-                continue
+            tmp_path = f"{pickle_path}.tmp"
+            with open(tmp_path, "wb") as f:
+                pickle.dump(data_set, f, protocol=pickle.HIGHEST_PROTOCOL)
+            os.replace(tmp_path, pickle_path)
 
-            if dust2 in line:
-                return 1
-            if mirage in line:
-                return 2
-            if pipei in line:
-                return 3
+            migrated += 1
+        except Exception as e:
+            failed += 1
+            print(f"迁移失败: {json_path} -> {pickle_path} ({e})")
 
-        return None
-def main() -> None:
-    tailer = LogTailer(input_file)
-    while True:
-        press_p()
-        state = tailer.poll_state(timeout_s=1.0)
-        if state == 1:
-            print("dust2", flush=True)
-        elif state == 2:
-            print("mirage", flush=True)
-        elif state == 3:
-            print("匹配",flush=True)
-
-        else:
-            print("未知", flush=True)
-        time.sleep(1)
+    print(f"迁移完成: migrated={migrated}, skipped={skipped}, failed={failed}")
 
 
 if __name__ == "__main__":
-    time.sleep(3)
-    main()
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    map_data_dir = os.path.join(project_root, "mapData")
+    migrate_mapdata_json_to_pickle(map_data_dir)
