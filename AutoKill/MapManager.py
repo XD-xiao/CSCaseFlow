@@ -9,8 +9,9 @@ from typing import Dict, Tuple, Set, List, Iterator
 from Setting.Setting import MAP_AUTO_SAVE_INTERVAL_SEC, MAP_DATA_DIR_NAME, MAP_DATA_FILE_EXT, MAP_GRID_SIZE
 
 class MapManager:
-    def __init__(self, mapName: str):
+    def __init__(self, mapName: str, persist: bool = True):
         self.mapName = mapName
+        self.persist = persist
         self._data_lock = threading.RLock()
         self.grid_size = MAP_GRID_SIZE
         self.data: Set[Tuple[int, int, int]] = set()
@@ -19,14 +20,14 @@ class MapManager:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(current_dir)
         self.map_data_dir = os.path.join(project_root, MAP_DATA_DIR_NAME)
-        self.file_path = os.path.join(self.map_data_dir, f"{mapName}.{MAP_DATA_FILE_EXT}")
+        self.file_path = os.path.join(self.map_data_dir, f"{mapName}.{MAP_DATA_FILE_EXT}") if persist else None
         
-        # 确保目录存在
-        if not os.path.exists(self.map_data_dir):
-            try:
-                os.makedirs(self.map_data_dir)
-            except Exception as e:
-                print(f"创建地图目录失败: {e}")
+        if persist:
+            if not os.path.exists(self.map_data_dir):
+                try:
+                    os.makedirs(self.map_data_dir)
+                except Exception as e:
+                    print(f"创建地图目录失败: {e}")
         
         # 加载数据
         self._load_data()
@@ -46,6 +47,11 @@ class MapManager:
 
     def _load_data(self):
         """从pickle文件加载数据，如果不存在则创建空数据"""
+        if not self.persist:
+            with self._data_lock:
+                self.data = set()
+            return
+
         if os.path.exists(self.file_path):
             try:
                 with open(self.file_path, "rb") as f:
@@ -70,6 +76,9 @@ class MapManager:
 
     def save_data(self):
         """将数据保存到pickle文件 (手动调用)"""
+        if not self.persist:
+            return
+
         try:
             with self._data_lock:
                 data_snapshot = set(self.data)

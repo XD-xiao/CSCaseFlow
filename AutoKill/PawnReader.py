@@ -207,12 +207,15 @@ class PawnReader:
 
             entity.canShoutAngle, entity.distance = Utility.aimEnemy(player.pos, entity.pos)
 
+            # 检测是否被 spotted, 从而判断是否可射击
             entity.spotted = entity.id in player.SpottedByMask
             if entity.spotted:
                 entity.isCanShot = True
                 return True
 
-            entity.isCanShot = mapManager.can_shoot(player.pos, entity.pos)
+            # 根据地图数据检测是否可射击
+            else:    
+                entity.isCanShot = mapManager.can_shoot(player.pos, entity.pos)
 
             raw_name = self.mm.read_string(entity.localControllerPtr + self.mm.m_iszPlayerName)
             entity.name = Utility.transliterate(raw_name)
